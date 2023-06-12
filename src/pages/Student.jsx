@@ -16,14 +16,19 @@ import {
   Radio,
   RadioGroup,
   Textarea,
+  useToast,
 } from "@chakra-ui/react";
 import axios from "axios";
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import * as Yup from "yup";
+import ROUTES from "../constants/Routes";
 
 export default function Student() {
+  const [isLoading, setIsLoading] = useState(null);
+  const navigate = useNavigate();
+  const toast = useToast();
   return (
     <Flex
       minH={"100vh"}
@@ -63,11 +68,27 @@ export default function Student() {
               //       .required("Required"),
               //   })}
             >
-              {({ values }) => (
+              {({ values, resetForm }) => (
                 <Form
                   onSubmit={async (e) => {
                     e.preventDefault();
-                    console.log("values", values);
+                    setIsLoading(true);
+                    // console.log("values", values);
+                    // setIsLoading(false);
+                    await axios
+                      .post("/student", values)
+                      .then((res) =>
+                        toast({
+                          status: "success",
+                          position: "top-right",
+                          title: "Student Created",
+                        })
+                      )
+                      .catch((err) => console.log("err.message", err.message))
+                      .finally(() => {
+                        setIsLoading(false);
+                        navigate(ROUTES.DASHBOARD);
+                      });
                   }}
                 >
                   <Stack spacing={4}>
@@ -95,7 +116,7 @@ export default function Student() {
                         </FormControl>
                       )}
                     </Field>
-                    <Field id="description" name="description">
+                    <Field id="desc" name="desc">
                       {({ field, form }) => (
                         <FormControl isRequired>
                           <FormLabel>Description</FormLabel>
@@ -124,6 +145,7 @@ export default function Student() {
                         <FormControl isRequired>
                           <FormLabel>Country</FormLabel>
                           <Select {...field}>
+                            <option value="">Select One</option>
                             <option value="us">United States</option>
                             <option value="ca">Canada</option>
                             <option value="uk">United Kingdom</option>
@@ -177,6 +199,7 @@ export default function Student() {
                       </Link>
                     </Stack> */}
                     <Button
+                      isLoading={isLoading}
                       bg={"purple.400"}
                       color={"white"}
                       _hover={{

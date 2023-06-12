@@ -47,5 +47,5 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "https://mini-portal.onrender.com/api/"
+  "proxy": "http://localhost:6000/api"
 }

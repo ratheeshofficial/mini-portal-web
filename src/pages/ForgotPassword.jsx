@@ -17,6 +17,7 @@ import React, { useState } from "react";
 
 const ForgotPassword = () => {
   const [isLoading, setIsLoading] = useState(null);
+  console.log('isLoading', isLoading)
   const [email, setEmail] = useState("");
   const [isEmailSent, setIsEmailSent] = useState(false);
   const [emailError, setEmailError] = useState("");
@@ -27,7 +28,7 @@ const ForgotPassword = () => {
       .post("/admin/forgot-password", { email })
       .then((res) => setIsEmailSent(true))
       .catch((err) => setEmailError(err.response.data))
-      .finally(setIsLoading(false));
+      .finally(()=>setIsLoading(false));
   };
   return (
     <Flex minH={"100vh"} align={"center"} justify={"center"}>

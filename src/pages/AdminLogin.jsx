@@ -17,12 +17,15 @@ import {
 import axios from "axios";
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import * as Yup from "yup";
+import ROUTES from "../constants/Routes";
 
 export default function AdminLogin() {
   const [show, setShow] = useState(false);
+  const [isLoading, setIsLoading] = useState(null);
   const toast = useToast();
+  const navigate = useNavigate();
 
   const handleClick = () => {
     setShow(!show);
@@ -63,29 +66,35 @@ export default function AdminLogin() {
                   .required("Required"),
               })}
             >
-              {({ values }) => (
+              {({ values, resetForm }) => (
                 <Form
                   onSubmit={async (e) => {
                     e.preventDefault();
+                    setIsLoading(true);
                     await axios
                       .post("/admin/login", values)
-                      .then((res) =>
+                      .then((res) => {
                         localStorage.setItem(
                           "loginDetails",
                           JSON.stringify(res.data)
-                        )
-                      )
+                        );
+                        navigate(ROUTES.DASHBOARD);
+                      })
                       .catch((err) => {
                         toast({
                           status: "error",
                           position: "top-right",
                           title: err.response.data,
                         });
+                      })
+                      .finally(() => {
+                        setIsLoading(false);
+                        resetForm({ values: "" });
                       });
                   }}
                 >
                   <Stack spacing={4}>
-                    <Field id="emal" name="email">
+                    <Field id="email" name="email">
                       {({ field, form }) => (
                         <FormControl isRequired>
                           <FormLabel>Email</FormLabel>
@@ -160,6 +169,7 @@ export default function AdminLogin() {
                       </Link>
                     </Stack>
                     <Button
+                      isLoading={isLoading}
                       bg={"purple.400"}
                       color={"white"}
                       _hover={{

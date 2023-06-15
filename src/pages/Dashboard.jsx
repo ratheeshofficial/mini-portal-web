@@ -13,7 +13,6 @@ import {
   ModalFooter,
   ModalHeader,
   ModalOverlay,
-  Select,
   Table,
   TableCaption,
   TableContainer,
@@ -24,121 +23,181 @@ import {
   Th,
   Thead,
   Tr,
+  useBoolean,
   useDisclosure,
   useToast,
 } from "@chakra-ui/react";
 import axios from "axios";
 import jsPDF from "jspdf";
 import React from "react";
+import Select from "react-select";
 import { useState } from "react";
 import { useEffect } from "react";
 
+const AssigneeActions = (props) => {
+  const { studentData, index, students, setStudentData } = props;
+
+  const [adminData, setAdminData] = React.useState([]);
+
+  const [evaluatorData, setEvaluatorData] = React.useState([]);
+
+  const toast = useToast();
+
+  const [isSubmitting, isState] = useBoolean(false);
+
+  const fetchEmails = async () => {
+    try {
+      const getAdmins = await axios.get("/admin");
+      const data = getAdmins.data;
+      setAdminData(data);
+      const filteredEmails = data
+        .filter((item) => item.role === "evaluator")
+        .map((item) => {
+          return { label: item.email, value: item._id };
+        });
+      setEvaluatorData(filteredEmails);
+    } catch (error) {
+      console.error("Error fetching emails:", error);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchEmails();
+  }, []);
+
+  function handleOnchange() {
+    const [selectedOption, studentData] = [...arguments];
+
+    const selectedAdmin = adminData.find(
+      (ad) => ad._id === selectedOption.value
+    );
+
+    const findIndex = students.findIndex((obj) => obj._id === studentData._id);
+
+    if (findIndex !== -1) {
+      students.splice(findIndex, 1);
+
+      const std = students.splice(findIndex, 0, {
+        ...studentData,
+        assignedTo: selectedAdmin,
+      });
+
+      const newStudentData = [...students, ...std];
+
+      setStudentData(newStudentData);
+    }
+  }
+
+  async function handleSubmit(data) {
+    const body = { studentId: data._id, adminId: data.assignedTo._id };
+
+    try {
+      isState.on();
+      // setIsSubmiting(true);
+      const res = await axios.post("/student/assign-tasks", body);
+
+      toast({
+        status: "success",
+        position: "top-right",
+        title: res?.data.message,
+      });
+    } catch (err) {
+      toast({
+        status: "error",
+        position: "top-right",
+        title: err.response.data.message ? err.response.data.message : "error",
+      });
+    } finally {
+      isState.off();
+    }
+  }
+
+  return (
+    <React.Fragment>
+      <Select
+        options={evaluatorData}
+        onChange={(selectedOption) =>
+          handleOnchange(selectedOption, studentData)
+        }
+        value={evaluatorData.find(
+          (eva) => eva.value === studentData.assignedTo._id
+        )}
+      />
+      <Button
+        isLoading={isSubmitting}
+        onClick={() => handleSubmit(studentData)}
+      >
+        Submit
+      </Button>
+    </React.Fragment>
+  );
+};
+
 const Dashboard = () => {
   const auth = JSON.parse(localStorage.getItem("loginDetails"));
-  const [studentData, setStudentData] = useState([]);
-  console.log("studentData", studentData);
-  const [selectedStudent, setSelectedStudent] = useState(null);
-  // const [adminDetails, setAdminDetails] = useState([]);
-  // console.log("adminDetails", adminDetails);
-  const [evaluatorRole, setEvaluatorRole] = useState(null);
-  const [isAssign, setIsAssign] = useState(true);
-  console.log("isAssign", isAssign);
-
-  const [studentDetails, setStudentDetails] = useState();
-  console.log("studentDetails", studentDetails);
-  const [adminId, setAdminId] = useState();
-  console.log("studentDetails", studentDetails);
-
-  const [emailData, setEmailData] = useState([]);
-  console.log("emailData", emailData);
-
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
+
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [evaluatorRole, setEvaluatorRole] = useState(null);
+
+  const [adminId, setAdminId] = useState();
+
+  const [studentData, setStudentData] = useState([]);
+  const [emailData, setEmailData] = useState([]);
+
   const [isSubmiting, setIsSubmiting] = useState(false);
+
+  const [isSubmitting, isState] = useBoolean(false);
 
   const handleView = (student, i) => {
     setSelectedStudent(i);
     onOpen();
   };
 
-  // const handleAssignee = (e, i, student) => {
-  //   const arr = [];
-
-  //   studentData?.map((val) => {
-  //     if (student._id === val._id) {
-  //       arr.push({ ...val, assignee: e.target.value });
-  //     } else {
-  //       arr.push(val);
-  //     }
-  //   });
-
-  //   setStudentData(arr);
-
-  //   setIsAssign(false);
-  // };
-
-  const handleAssigneeSubmit = async (student, i) => {
-    console.log("student", student);
-    setIsAssign(true);
-    console.log("submit");
-    // await axios
-    //   .put(`/student/${student._id}`, student)
-    //   .then(
-    //     toast({
-    //       status: "success",
-    //       position: "top-right",
-    //       title: "Assignee Created",
-    //     })
-    //   )
-    //   .catch((err) => console.log("err.message", err.message));
-  };
-
   const handleDownload = (student) => {
     // setIsGenerating(true);
-    console.log("student pdf", student);
     const doc = new jsPDF();
-    console.log("doc", doc);
-
     doc.text(`Name: ${student.name}`, 10, 10);
     doc.text(`Desc: ${student.desc}`, 10, 20);
     doc.text(`Country: ${student.country}`, 10, 30);
     doc.text(`Gender: ${student.gender}`, 10, 40);
-    console.log("doc", doc);
     doc.save("a4.pdf");
     // setIsGenerating(false);
   };
 
-  const fetchStudent = async () => {
-    console.log("fetch``````````````````");
+  console.log("studentData", studentData);
 
+  const fetchStudent = async () => {
     try {
-      console.log("try----");
-      const data = await axios
-        .get("/student", {
-          headers: {
-            Authorization: auth.token,
-          },
-        })
-        .then((res) => setStudentData(res.data))
-        .catch((err) => {
-          console.log("err", err);
-        });
-      console.log("data", data);
-      // .then((res) => console.log(res))
-      // .catch((err) => console.log("err.message", err.message));
+      const data = await axios.get("/student", {
+        headers: {
+          Authorization: auth.token,
+        },
+      });
+      setStudentData(data.data);
     } catch (error) {
       console.log("error:", error.message);
     }
   };
 
+  const filteredOptions = emailData.filter((item) => item.role === "evaluator");
+
+  const selectOptions = filteredOptions.map((option) => ({
+    value: option._id,
+    label: option.email,
+  }));
+
+  const [selectedOption, setSelectedOption] = useState(null);
+
+  const handleSelectChange = (selected) => {
+    setSelectedOption(selected);
+  };
+
   const fetchEmails = async () => {
-    console.log("fetchEmails");
     try {
-      const getAdmins = await fetch("/admin");
-      // setAdminDetails(getAdmins.data);
-      // console.log("getAdmins", getAdmins);
-      const data = await getAdmins.json();
-      console.log("data", data);
+      const getAdmins = await axios.get("/admin");
+      const data = getAdmins.data;
       setEmailData(data);
       const filteredEmails = data
         .filter((item) => item.role === "evaluator")
@@ -149,47 +208,58 @@ const Dashboard = () => {
     }
   };
 
-  const assignTasks = async (student, key) => {
-    try {
-      const body = {
-        studentId: student._id,
-        adminId: adminId,
-      };
-
-      setIsSubmiting(true);
-      await axios
-        .post("/student/assign-tasks", body)
-        .then(
-          // (res) => setStudentDetails(res.data),
-          (res) => {
-            toast({
-              status: "success",
-              position: "top-right",
-              title: res?.data.message,
-            });
-          }
-        )
-        .catch((err) => {
-          toast({
-            status: "error",
-            position: "top-right",
-            title: err.response.data.message
-              ? err.response.data.message
-              : "error",
-          });
-        })
-        .finally(() => setIsSubmiting(false));
-    } catch (error) {
-      console.log("error.message");
-    }
-
-    // setStudentDetails(getStudents.data);
-  };
-
   useEffect(() => {
     fetchStudent();
     fetchEmails();
   }, []);
+
+  const renderModal = () => {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Student Details</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text>
+              Name :{" "}
+              {studentData[selectedStudent] &&
+                studentData[selectedStudent].name}
+            </Text>
+            <Text>
+              Desc :{" "}
+              {studentData[selectedStudent] &&
+                studentData[selectedStudent].desc}
+            </Text>
+            <Text>
+              Country :{" "}
+              {studentData[selectedStudent] &&
+                studentData[selectedStudent].country}
+            </Text>
+            <Text>
+              Gender :{" "}
+              {studentData[selectedStudent] &&
+                studentData[selectedStudent].gender}
+            </Text>
+            <Text></Text>
+          </ModalBody>
+
+          <ModalFooter>
+            <Button colorScheme="blue" mr={3} onClick={onClose}>
+              Close
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleDownload(studentData[selectedStudent])}
+            >
+              Download
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    );
+  };
+
   return (
     <Box my="5">
       <Container maxW="container.xl">
@@ -227,27 +297,12 @@ const Dashboard = () => {
                       </Td>
                       <Td>
                         <Flex>
-                          <Select
-                            width="50%"
-                            onChange={(e) => setAdminId(e.target.value)}
-                          >
-                            <option>Select Assigny</option>
-
-                            {emailData &&
-                              emailData
-                                .filter((item) => item.role === "evaluator")
-                                .map((option, key) => (
-                                  <option key={key} value={option._id}>
-                                    {option.email}
-                                  </option>
-                                ))}
-                          </Select>
-                          <Button
-                            onClick={() => assignTasks(student, i)}
-                            isLoading={isSubmiting}
-                          >
-                            Submit
-                          </Button>
+                          <AssigneeActions
+                            studentData={student}
+                            students={studentData}
+                            setStudentData={setStudentData}
+                            index={i}
+                          />
                         </Flex>
                       </Td>
                     </Tr>
@@ -256,48 +311,7 @@ const Dashboard = () => {
             </Tbody>
           </Table>
         </TableContainer>
-        <Modal isOpen={isOpen} onClose={onClose}>
-          <ModalOverlay />
-          <ModalContent>
-            <ModalHeader>Student Details</ModalHeader>
-            <ModalCloseButton />
-            <ModalBody>
-              <Text>
-                Name :{" "}
-                {studentData[selectedStudent] &&
-                  studentData[selectedStudent].name}
-              </Text>
-              <Text>
-                Desc :{" "}
-                {studentData[selectedStudent] &&
-                  studentData[selectedStudent].desc}
-              </Text>
-              <Text>
-                Country :{" "}
-                {studentData[selectedStudent] &&
-                  studentData[selectedStudent].country}
-              </Text>
-              <Text>
-                Gender :{" "}
-                {studentData[selectedStudent] &&
-                  studentData[selectedStudent].gender}
-              </Text>
-              <Text></Text>
-            </ModalBody>
-
-            <ModalFooter>
-              <Button colorScheme="blue" mr={3} onClick={onClose}>
-                Close
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleDownload(studentData[selectedStudent])}
-              >
-                Download
-              </Button>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
+        {renderModal()}
         {/* <CreateAdmin /> */}
       </Container>
     </Box>

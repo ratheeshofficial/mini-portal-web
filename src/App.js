@@ -7,22 +7,25 @@ import ChangePassword from "./pages/ChangePassword";
 import Dashboard from "./pages/Dashboard";
 import SidebarWithHeader from "./pages/components/Sidebar";
 import CreateAdmin from "./pages/CreateAdmin";
+import AppRoutes from "./routes/AppRoutes";
+import AuthRoutes from "./routes/AuthRoutes";
+import { useState } from "react";
+import { Button, Text } from "@chakra-ui/react";
 
 function App() {
-  return (
-    <BrowserRouter>
-      <SidebarWithHeader>
-        <Routes>
-          <Route path="/" element={<AdminLogin />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/student" element={<Student />} />
-          <Route path="/reset-password/:token" element={<ChangePassword />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/create-admin" element={<CreateAdmin />} />
-        </Routes>
-      </SidebarWithHeader>
-    </BrowserRouter>
-  );
+  const auth = JSON.parse(localStorage.getItem("loginDetails"));
+  console.log("auth", auth);
+  if (auth) {
+    console.log("success");
+    return <AppRoutes />;
+  } else {
+    console.log("error");
+    return <AuthRoutes />;
+  }
 }
 
-export default App;
+const MainRouter = () => {
+  return <App />;
+};
+
+export default MainRouter;

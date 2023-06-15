@@ -39,7 +39,7 @@ import {
   FiList,
   FiCheckSquare,
 } from "react-icons/fi";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import ROUTES from "../../constants/Routes";
 import { Logo } from "../../constants/ImageData";
 
@@ -219,6 +219,11 @@ const NavItem = ({ icon, children, route, ...rest }) => {
 };
 
 const MobileNav = ({ onOpen, ...rest }) => {
+  const navigate = useNavigate();
+  const handleSignout = () => {
+    localStorage.removeItem("loginDetails");
+    navigate(ROUTES.ROOT_SCREEN);
+  };
   return (
     <Flex
       ml={{ base: 0, md: 60 }}
@@ -282,7 +287,9 @@ const MobileNav = ({ onOpen, ...rest }) => {
               <MenuItem>Settings</MenuItem>
               <MenuItem>Billing</MenuItem> */}
               {/* <MenuDivider /> */}
-              <MenuItem zIndex="popover">Sign out</MenuItem>
+              <MenuItem zIndex="popover" onClick={handleSignout}>
+                Sign out
+              </MenuItem>
             </MenuList>
           </Menu>
         </Flex>

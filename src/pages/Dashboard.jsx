@@ -1,4 +1,5 @@
 import {
+  Badge,
   Box,
   Button,
   Container,
@@ -35,7 +36,9 @@ import { useState } from "react";
 import { useEffect } from "react";
 
 const AssigneeActions = (props) => {
+  const auth = JSON.parse(localStorage.getItem("loginDetails"));
   const { studentData, index, students, setStudentData } = props;
+  console.log("studentData", studentData);
 
   const [adminData, setAdminData] = React.useState([]);
 
@@ -44,6 +47,16 @@ const AssigneeActions = (props) => {
   const toast = useToast();
 
   const [isSubmitting, isState] = useBoolean(false);
+
+  const [isApproved, setIsApproved] = useState(false);
+
+  const [isApprove, setIsApprove] = useState(false);
+  const [isDenied, setIsDenied] = useState(true);
+
+  const [isDeniedVisible, setIsDeniedVisible] = useState(false);
+
+  const [status, setStatus] = useState();
+  console.log("status", status);
 
   const fetchEmails = async () => {
     try {
@@ -60,10 +73,6 @@ const AssigneeActions = (props) => {
       console.error("Error fetching emails:", error);
     }
   };
-
-  React.useEffect(() => {
-    fetchEmails();
-  }, []);
 
   function handleOnchange() {
     const [selectedOption, studentData] = [...arguments];
@@ -112,23 +121,72 @@ const AssigneeActions = (props) => {
     }
   }
 
+  async function handleApprove(studentData, status) {
+    // setIsApproved(!isApproved);
+    // setIsDeniedVisible(!isDeniedVisible);
+    // setIsApprove(true);
+    // setIsDenied(false);
+    await axios
+      .put(`student/${studentData._id}`, { status: status })
+      .then((res) => {
+        setStatus(res.data.status);
+      })
+      .catch((err) => console.log("err.message", err.message));
+  }
+
+  React.useEffect(() => {
+    fetchEmails();
+  }, []);
+
   return (
     <React.Fragment>
-      <Select
-        options={evaluatorData}
-        onChange={(selectedOption) =>
-          handleOnchange(selectedOption, studentData)
-        }
-        value={evaluatorData.find(
-          (eva) => eva.value === studentData.assignedTo._id
-        )}
-      />
+      {auth.role === "superAdmin" ? (
+        <>
+          <Select
+            options={evaluatorData}
+            onChange={(selectedOption) =>
+              handleOnchange(selectedOption, studentData)
+            }
+            value={evaluatorData?.find(
+              (eva) => eva?.value === studentData?.assignedTo?._id
+            )}
+          />
+          <Button
+            isLoading={isSubmitting}
+            onClick={() => handleSubmit(studentData)}
+          >
+            Submit
+          </Button>
+        </>
+      ) : (
+        ""
+      )}
+
       <Button
-        isLoading={isSubmitting}
-        onClick={() => handleSubmit(studentData)}
+        variant="outline"
+        onClick={() => handleApprove(studentData, true)}
+        // isDisabled={isApproved}
+        // isDisabled={isApprove}
       >
-        Submit
+        Approve
       </Button>
+      <Button
+        variant="outline"
+        ml="2"
+        onClick={() => handleApprove(studentData, false)}
+        // isDisabled={!isApproved}
+        // isDisabled={isDenied}
+        // visibility={isDeniedVisible ? "visible" : "hidden"}
+      >
+        Deny
+      </Button>
+      <Text>
+        {studentData && studentData.status === true
+          ? "Approved"
+          : studentData.status === false
+          ? "Denied"
+          : "Not selected"}
+      </Text>
     </React.Fragment>
   );
 };
@@ -165,8 +223,6 @@ const Dashboard = () => {
     doc.save("a4.pdf");
     // setIsGenerating(false);
   };
-
-  console.log("studentData", studentData);
 
   const fetchStudent = async () => {
     try {
@@ -273,7 +329,7 @@ const Dashboard = () => {
                 <Th>Description</Th>
                 <Th>View</Th>
                 <Th>Download</Th>
-                <Th>Assignee</Th>
+                <Th>{auth.role === "superAdmin" ? "Assignee" : ""}</Th>
               </Tr>
             </Thead>
             <Tbody>

@@ -272,7 +272,7 @@ export default function CreateAdmin() {
           style={{ filter: "blur(70px)" }}
           
         /> */}
-      <Button onClick={() => setIsApproved(true)} colorScheme="green">
+      {/* <Button onClick={() => setIsApproved(true)} colorScheme="green">
         Approve
       </Button>
       <Button onClick={() => setIsApproved(false)} colorScheme="red" ml="2">
@@ -280,7 +280,7 @@ export default function CreateAdmin() {
       </Button>
       {isApproved !== null && (
         <Text> {isApproved ? "Approved" : "denied"}</Text>
-      )}
+      )} */}
     </Box>
   );
 }

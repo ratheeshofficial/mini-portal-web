@@ -56,7 +56,6 @@ const AssigneeActions = (props) => {
   const [isDeniedVisible, setIsDeniedVisible] = useState(false);
 
   const [status, setStatus] = useState();
-  console.log("status", status);
 
   const fetchEmails = async () => {
     try {
@@ -129,7 +128,8 @@ const AssigneeActions = (props) => {
     await axios
       .put(`student/${studentData._id}`, { status: status })
       .then((res) => {
-        setStatus(res.data.status);
+        let updatedData = students.filter((s) => s._id !== res.data._id);
+        setStudentData([...updatedData, res.data]);
       })
       .catch((err) => console.log("err.message", err.message));
   }

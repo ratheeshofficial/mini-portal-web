@@ -128,8 +128,13 @@ const AssigneeActions = (props) => {
     await axios
       .put(`student/${studentData._id}`, { status: status })
       .then((res) => {
-        let updatedData = students.filter((s) => s._id !== res.data._id);
-        setStudentData([...updatedData, res.data]);
+        let updatedData = students.filter((s) => {
+          if (s._id === res.data._id) {
+            s.status = status;
+          }
+          return s;
+        });
+        setStudentData([...updatedData]);
       })
       .catch((err) => console.log("err.message", err.message));
   }
